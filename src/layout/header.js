@@ -1,16 +1,12 @@
-import { useContext, useState } from "react";
+
 import {
   Container,
-  Form,
-  FormControl,
   Nav,
   Navbar,
-  Button,
-  Image,
+
 } from "react-bootstrap";
-import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
-import { UserContext } from "../App";
+
 
 const Header = () => {
   return (
