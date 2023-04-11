@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import ReactDOM from 'react-dom';
+import React, { useEffect, useRef, useState } from "react";
 import $ from "jquery";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ARButton } from "../libs/ARButton";
@@ -9,37 +11,156 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 // import { Stats } from "../libs/stats.module.js";
 
 export default function ImageDetec() {
-  var container;
+ 
+var ref = useRef(null);
+var container;
   var camera, scene, renderer;
+  var controller;
+
   var reticle, pmremGenerator, current_object, controls, isAR, envmap;
-  var touchDown, touchX, touchY, deltaX, deltaY;
+
   var hitTestSource = null;
   var hitTestSourceRequested = false;
+  
+ 
 
-  init();
-  animate();
-  $(document).ready(function() {
-    $(".ar-object").click(function(){
-      if(current_object != null){
-        scene.remove(current_object);
-      }
-      loadModel($(this).attr("id"));
-    });
+  useEffect(() =>{
+    const elm = ref.current;
+    container = document.createElement('div');
+    elm.appendChild(container);
+
+    function init() {
+
+      scene = new THREE.Scene();
+      window.scene = scene;
+
+      camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.001,
+        200
+      );
   
-    $("#ARButton").click(function(){
-      current_object.visible = false;
-      isAR = true;
-    });
+      var directionalLight = new THREE.DirectionalLight(0xdddddd, 1);
+      directionalLight.position.set(0, 0, 1).normalize();
+      scene.add(directionalLight);
+      var ambientLight = new THREE.AmbientLight(0x222222);
+      scene.add(ambientLight);
   
-    $("#VRButton").click(function(){
-      scene.background = envmap;
-      scene.position.z = -2;
-    });
+      //
   
-    $("#place-button").click(function(){
-      arPlace();
-    });
-  })
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      container.appendChild(renderer.domElement);
+  
+      // pmremGenerator = new THREE.PMREMGenerator(renderer);
+      // pmremGenerator.compileEquirectangularShader();
+  
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.addEventListener("change", render);
+      controls.minDistance = 2;
+      controls.maxDistance = 10;
+      controls.target.set(0, 0, -0.2);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+  
+      //VR SETUP
+      // document.body.appendChild(VRButton.createButton(renderer));
+  
+      //AR SETUP
+  
+      let options = {
+        requiredFeatures: ["hit-test"],
+        optionalFeatures: ["dom-overlay"],
+      };
+  
+      options.domOverlay = { root: document.getElementById("content") };
+  
+      document.body.appendChild(ARButton.createButton(renderer, options));
+  
+      //document.body.appendChild( ARButton.createButton( renderer, { requiredFeatures: [ 'hit-test' ] } ) );
+  
+      //
+  
+      reticle = new THREE.Mesh(
+        new THREE.RingBufferGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial()
+      );
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+      scene.add(reticle);
+  
+      //
+  
+      window.addEventListener("resize", onWindowResize, false);
+  
+      // renderer.domElement.addEventListener(
+      //   "touchstart",
+      //   function (e) {
+      //     e.preventDefault();
+      //     touchDown = true;
+      //     touchX = e.touches[0].pageX;
+      //     touchY = e.touches[0].pageY;
+      //   },
+      //   false
+      // );
+  
+      // renderer.domElement.addEventListener(
+      //   "touchend",
+      //   function (e) {
+      //     e.preventDefault();
+      //     touchDown = false;
+      //   },
+      //   false
+      // );
+  
+      // renderer.domElement.addEventListener(
+      //   "touchmove",
+      //   function (e) {
+      //     e.preventDefault();
+  
+      //     if (!touchDown) {
+      //       return;
+      //     }
+  
+      //     deltaX = e.touches[0].pageX - touchX;
+      //     deltaY = e.touches[0].pageY - touchY;
+      //     touchX = e.touches[0].pageX;
+      //     touchY = e.touches[0].pageY;
+  
+      //     rotateObject();
+      //   },
+      //   false
+      // );
+    }
+    init();
+    animate();
+  },[])
+
+  $(".ar-object").click(function () {
+    if (current_object != null) {
+      scene.remove(current_object);
+    }
+
+    loadModel($(this).attr("id"));
+  });
+
+  $("#ARButton").click(function () {
+    current_object.visible = false;
+    isAR = true;
+  });
+
+  $("#VRButton").click(function () {
+    scene.background = envmap;
+    scene.position.z = -2;
+  });
+
+  $("#place-button").click(function () {
+    arPlace();
+  });
+  
 
   function arPlace() {
     if (reticle.visible) {
@@ -51,7 +172,7 @@ export default function ImageDetec() {
   function loadModel(model) {
     new RGBELoader()
       .setDataType(THREE.UnsignedByteType)
-      .setPath('../textures/')
+      .setPath("./textures/")
       .load("photo_studio_01_1k.hdr", function (texture) {
         envmap = pmremGenerator.fromEquirectangular(texture).texture;
 
@@ -60,7 +181,7 @@ export default function ImageDetec() {
         pmremGenerator.dispose();
         render();
 
-        var loader = new GLTFLoader().setPath("../3d/");
+        var loader = new GLTFLoader().setPath("./3d/");
         loader.load(model + ".glb", function (glb) {
           current_object = glb.scene;
           scene.add(current_object);
@@ -74,104 +195,12 @@ export default function ImageDetec() {
           controls.update();
           render();
         });
+        console.log(loader);
       });
-  }
-
-  function init() {
-    //create a container as a htlmelement div
-    container = document.createElement("div");
-    // document.getElementById("container").appendChild(container);
-    scene = new THREE.Scene();
-    window.scene = scene;
-
-    camera = new THREE.PerspectiveCamera(
-      70,
-      window.innerWidth / window.innerHeight,
-      0.001,
-      200
-    );
-
-    var directionalLight = new THREE.DirectionalLight(0xdddddd, 1);
-    directionalLight.position.set(0, 0, 1).normalize();
-    scene.add(directionalLight);
-
-    var ambientLight = new THREE.AmbientLight(0x222222);
-    scene.add(ambientLight);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
-    container.appendChild(renderer.domElement);
-
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.addEventListener("change", render);
-    controls.minDistance = 2;
-    controls.maxDistance = 10;
-    controls.target.set(0, 0, -0.2);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-
-    // vr setup
-    document.body.appendChild(VRButton.createButton(renderer));
-
-    // ar setup
-
-    let options = {
-      requiredFeatures: ["hit-test"],
-      optionalFeatures: ["dom-overlay"],
-    };
-
-    options.domOverlay = { root: document.getElementById("content") };
-    document.body.appendChild(ARButton.createButton(renderer, options));
-
-    //create a ring to pick position
-    reticle = new THREE.Mesh(
-      new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial()
-    );
-    reticle.matrixAutoUpdate = false;
-    reticle.visible = false;
-    scene.add(reticle);
-
-    window.addEventListener("resize", onWindowResize, false);
-    renderer.domElement.addEventListener(
-      "touchstart",
-      function (e) {
-        e.preventDefault();
-        touchDown = true;
-        touchX = e.touches[0].pageX;
-        touchY = e.touches[0].pageY;
-      },
-      false
-    );
-
-    renderer.domElement.addEventListener(
-      "touchend",
-      function (e) {
-        e.preventDefault();
-        touchDown = false;
-      },
-      false
-    );
-
-    renderer.domElement.addEventListener(
-      "touchmove",
-      function (e) {
-        e.preventDefault();
-        if (!touchDown) {
-          return;
-        }
-        deltaX = e.touches[0].pageX - touchX;
-        deltaY = e.touches[0].pageY - touchY;
-        touchX = e.touches[0].pageX;
-        touchY = e.touches[0].pageY;
-
-        rotateObject();
-      },
-      false
-    );
-  }
+      
+  } 
+  
+  var touchDown, touchX, touchY, deltaX, deltaY;
 
   function rotateObject() {
     if (current_object && reticle.visible) {
@@ -185,6 +214,8 @@ export default function ImageDetec() {
 
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
+
+  //
 
   function animate() {
     renderer.setAnimationLoop(render);
@@ -246,14 +277,10 @@ export default function ImageDetec() {
 
     renderer.render(scene, camera);
   }
-
   return (
     <div>
       <div id="content">
-        <div id="mySidenav" className="sidenav">
-          <a  className="closebtn">
-            &times;
-          </a>
+        <div id="mySidenav">
           <a className="ar-object" id="1" href="#">
             item_1
           </a>
@@ -268,24 +295,14 @@ export default function ImageDetec() {
           </a>
         </div>
 
-        <div id="container"></div>
+        <div id="container" ref={ref}></div>
 
-        {/* <span onclick="openNav()">&#9776; open</span> */}
+        <span>open</span>
 
         <button type="button" id="place-button">
           PLACE
         </button>
       </div>
-
-      {/* <script>
-			function openNav() {
-			  document.getElementById("mySidenav").style.width = "250px"
-			}
-			
-			function closeNav() {
-			  document.getElementById("mySidenav").style.width = "0"
-			}
-		</script> */}
     </div>
   );
 }
