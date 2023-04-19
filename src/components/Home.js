@@ -16,13 +16,15 @@ export default function Home(){
           </div>
           <div className="p-0 mt-[100px] ml-[50px] mr-[50px] h-full w-2/5 m-0">
             <div className="hover:bg-[#AEE2FF] shadow-lg shadow-gray-100 xs:shadow-xs md:shadow-gray-100 p-4 text-center rounded-md h-[70px] mb-[10px]">
-              <Link to="/function">
-               Upload Models
+              <Link to="/imagedetection">
+              Image Detection
               </Link>
              
             </div>
             <div className="hover:bg-[#AEE2FF] shadow-lg shadow-gray-100 xs:shadow-xs md:shadow-gray-100 p-4 text-center rounded-md h-[70px] mb-[10px]">
-              Upload Models
+            <Link to="/planedetection">
+              Plane Detection
+              </Link>
             </div>
             <div className="hover:bg-[#AEE2FF] shadow-lg shadow-gray-100 xs:shadow-xs md:shadow-gray-100 p-4 text-center rounded-md h-[70px] mb-[10px]">
               Upload Models
