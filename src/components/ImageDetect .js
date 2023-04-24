@@ -9,38 +9,41 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import hdrFilePath from "../textures/photo_studio_01_1k.hdr";
 import { useGLTF } from "@react-three/drei";
-// import model1 from "../3d/1.glb";
+import { useLoader } from "@react-three/fiber";
+import model1 from "../3d/1.glb";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
-
+// const url = require("../3d/");
 // import { Stats } from "../libs/stats.module.js";
 
 export default function ImageDetec() {
   const [model, setModel] = useState(1);
-  const [modelList, setModelList] = useState([]);
+  var context = require.context("../3d", true, /\.(glb|gltf)$/); //get all 3d model
+  var res = context.keys().map(context);
+  const [modelList, setModelList] = useState(res);
   var ref = useRef(null);
   var container;
   var camera, scene, renderer;
   var controller;
   var reticle, pmremGenerator, current_object, controls, isAR, envmap;
-
   var hitTestSource = null;
   var hitTestSourceRequested = false;
 
   //change model on click
   function handleClick(e) {
     let num = e.target.id;
-    modelList.map((element, i) =>{
-      if(i+1==num){
+    modelList.map((element, i) => {
+      if (i + 1 == num) {
         setModel(num);
       }
-    })
+    });
   }
+
   //init scene, ar setup
   useEffect(() => {
     const elm = ref.current;
     container = document.createElement("div");
     elm.appendChild(container);
-
+    console.log(elm);
     function init() {
       scene = new THREE.Scene();
 
@@ -84,13 +87,14 @@ export default function ImageDetec() {
 
       function onSelect() {
         if (reticle.visible) {
-          const material = new THREE.MeshPhongMaterial({
-            color: 0xffffff * Math.random(),
-          });
-          const mesh = new THREE.Mesh(geometry, material);
-          reticle.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
-          mesh.scale.y = Math.random() * 2 + 1;
-          scene.add(mesh);
+          loadModel(model);
+          // const material = new THREE.MeshPhongMaterial({
+          //   color: 0xffffff * Math.random(),
+          // });
+          // const mesh = new THREE.Mesh(geometry, material);
+          // reticle.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+          // mesh.scale.y = Math.random() * 2 + 1;
+          // scene.add(mesh);
         }
       }
 
@@ -107,34 +111,27 @@ export default function ImageDetec() {
       scene.add(reticle);
       window.addEventListener("resize", onWindowResize);
     }
-    loadModel();
+
     init();
     animate();
+    
   }, []);
 
-  //get all object3d
-  useEffect(()=>{
-    const loadallModel = () => {
-      const context = require.context('../3d', true, /\.(glb|gltf)$/);
-      const res = context.keys().map(context);
-      setModelList(res);
-    }
-    loadallModel();
-  }, [])
   function arPlace() {
     if (reticle.visible) {
       current_object.position.setFromMatrixPosition(reticle.matrix);
       current_object.visible = true;
     }
   }
-
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
-  function loadModel() {
+
+  function loadModel(model) {
+    console.log(modelList);
     new RGBELoader()
       .setDataType(THREE.HalfFloatType)
       .load(hdrFilePath, function (texture) {
@@ -143,30 +140,49 @@ export default function ImageDetec() {
         texture.dispose();
         pmremGenerator.dispose();
         render();
-        console.log("i am here!!!!!");
-        // console.log(model1.type);
-        var loader = new useGLTF().setPath("3d/");
-        console.log(model);
-        loader.load(model + ".glb", function (glb) {
-          current_object = glb.scene;
-          console.log("i am here!!!!!");
-          scene.add(current_object);
+
+        const loader = new GLTFLoader();
+        if (current_object != null) {
+          scene.remove(current_object);
           console.log(current_object);
-          arPlace();
 
-          var box = new THREE.Box3();
-          box.setFromObject(current_object);
-          // box.center(controls.target);
+        } else {
+          modelList.map((e, i) => {
+            console.log(model);
+            if (i + 1 == model) {
+              loader.load(
+                e,
+                function (glb) {
+                  current_object = glb.scene;
+                  console.log("i am here!!!!!");
+                  scene.add(current_object);
+                  console.log(current_object);
+                  arPlace();
 
-          controls.update();
-          render();
-        });
+                  var box = new THREE.Box3();
+                  box.setFromObject(current_object);
+                  // box.center(controls.target);
+
+                  controls.update();
+                  render();
+                },
+                function (xhr) {
+                  console.log((xhr.loaded / xhr.total) * 100 + "% loaded"); // Show the progress in percentage
+                },
+                function (error) {
+                  console.error(error);
+                }
+              );
+            }
+          });
+        }
       });
   }
 
   function animate() {
     renderer.setAnimationLoop(render);
-    // controls.update();
+    requestAnimationFrame(animate);
+    controls.update();
   }
 
   function render(timestamp, frame) {
@@ -213,18 +229,22 @@ export default function ImageDetec() {
     <div id="content" className="w-full flex-auto">
       <Row>
         <Col md={2} xs={12}>
-          <div id="mySidenav" className="h-full  fixed z-1  left-0 duration-500 bg-slate-300" >
+          <div
+            id="mySidenav"
+            className="h-full  fixed z-1  left-0 duration-500 bg-slate-300"
+          >
             <a className="closebt absolute"></a>
-           {modelList.map((m, index)=>(
-             <a
-              onClick={handleClick}
-              key ={index + 1}
-              className="ar-object p-3 no-underline block duration-300 text-slate-50"
-              id={index +1}
-              href="#">
-              Item_{index + 1}
-            </a>
-           ))}
+            {modelList.map((m, index) => (
+              <a
+                onClick={handleClick}
+                key={index + 1}
+                className="ar-object p-3 no-underline block duration-300 text-slate-50"
+                id={index + 1}
+                href="#"
+              >
+                Item_{index + 1}
+              </a>
+            ))}
           </div>
         </Col>
         <Col md={10} xs={12}>
