@@ -2,7 +2,6 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://NguyenTrungVu.github.io/ar1/",
   "dependencies": {
     "@react-three/drei": "^9.65.4",
     "@react-three/xr": "^5.4.1",

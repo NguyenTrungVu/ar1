@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import ReactDOM from "react-dom";
 import React, { useEffect, useRef, useState } from "react";
-import { Row, Col } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
@@ -13,13 +13,13 @@ export default function ImageDetec() {
   var context = require.context("../3d", true, /\.(glb|gltf)$/); //get all 3d model
   var res = context.keys().map(context);
   const [modelList, setModelList] = useState(res);
-  const [btplace, setBtplace] = useState({ display: "none" });
+  const [isAR, setIsAR]= useState(false);
   var ref = useRef(null);
-  var placebt = useRef(null);
+  var navigate = useNavigate();
   var container;
-  var camera, scene, renderer;
+  var camera, scene, renderer, workingVec3;
   var controller;
-  var reticle, pmremGenerator, current_object, controls, isAR, envmap;
+  var reticle, pmremGenerator, current_object, controls, envmap;
   var touchDown, touchX, touchY, deltaX, deltaY;
   var hitTestSource = null;
   var hitTestSourceRequested = false;
@@ -40,21 +40,9 @@ export default function ImageDetec() {
     e.preventDefault();
   }
 
-  //arbutton click
-
-  // useEffect(() => {
-  //   function placeClick() {
-  //     arPlace();
-  //   }
-  //   document
-  //     .getElementById("place-button")
-  //     .addEventListener("click", placeClick);
-  // }, []);
-
   //init scene, ar setup
   useEffect(() => {
     const elm = ref.current;
-    console.log(elm);
     function init() {
       scene = new THREE.Scene();
       window.scene = scene;
@@ -86,30 +74,27 @@ export default function ImageDetec() {
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
 
-      // let options = {
-      //   requiredFeatures: ["hit-test"],
-      //   optionalFeatures: ["dom-overlay"],
-      // };
       let overlayContent = document.getElementById("content");
-      // console.log(overlayContent);
-      // options.domOverlay = { root: overlayContent };
-      document.body.appendChild(ARButton.createButton(renderer, {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: overlayContent }
-    }));
-
-      // const geometry = new THREE.CylinderGeometry(
-      //   0.05,
-      //   0.05,
-      //   0.1,
-      //   32
-      // ).translate(0, 0.1, 0);
-
+      
+      elm.appendChild(
+        ARButton.createButton(renderer, {
+          requiredFeatures: ["hit-test"],
+          optionalFeatures: ["dom-overlay"],
+          domOverlay: { root: overlayContent},
+        })
+      );
+        workingVec3 = new THREE.Vector3();
       function onSelect() {
         if (reticle.visible) {
-          current_object.visible = true;
-          current_object.position.setFromMatrixPosition(reticle.matrix);
+          if (current_object.visible){
+            workingVec3.setFromMatrixPosition(reticle.matrix );
+        }else{
+            current_object.position.setFromMatrixPosition(reticle.matrix );
+            current_object.visible = true;
+        }
+          // current_object.visible = true;
+          // current_object.position.setFromMatrixPosition(reticle.matrix);
+          // current_object.newPath()
         }
       }
 
@@ -163,24 +148,11 @@ export default function ImageDetec() {
         },
         false
       );
+      // console.log(controller);
+      // console.log(renderer.xr.isPresenting);
     }
-
     init();
     animate();
-    rotateObject();
-  }, []);
-
-  useEffect(() => {
-    function arClick() {
-      isAR = true;
-      console.log("clicked");
-
-      document.getElementById("place-button").style.display = "block";
-    }
-    document.getElementById("ARButton").addEventListener("click", arClick);
-    return () => {
-      document.getElementById("ARButton").removeEventListener("click", arClick);
-    };
   }, []);
 
   useEffect(() => {
@@ -190,6 +162,7 @@ export default function ImageDetec() {
     };
     document.getElementById("open").addEventListener("click", myClick);
   }, []);
+
   useEffect(() => {
     const myClick = () => {
       document.getElementById("mySidenav").style.display = "none";
@@ -197,7 +170,6 @@ export default function ImageDetec() {
     };
     document.getElementById("closebtn").addEventListener("click", myClick);
   }, []);
-
   function arPlace() {
     if (reticle.visible) {
       current_object.position.setFromMatrixPosition(reticle.matrix);
@@ -221,10 +193,11 @@ export default function ImageDetec() {
         pmremGenerator.dispose();
         render();
 
+
         const loader = new GLTFLoader();
 
         modelList.map((e, i) => {
-          console.log(model);
+          
           if (i + 1 == model) {
             loader.load(
               e,
@@ -232,16 +205,12 @@ export default function ImageDetec() {
                 current_object = glb.scene;
                 // current_object.scale.set(.5,.5,.5);
                 console.log("i am here!!!!!");
-                
+
                 scene.add(current_object);
-                console.log(current_object);
 
                 arPlace();
-
                 var box = new THREE.Box3();
                 box.setFromObject(current_object);
-                // box.center(controls.target);
-
                 controls.update();
                 render();
               },
@@ -272,7 +241,14 @@ export default function ImageDetec() {
     if (frame) {
       const referenceSpace = renderer.xr.getReferenceSpace();
       const session = renderer.xr.getSession();
-
+      
+      if(session){
+        document.getElementById("ends").style.display="block";
+      }
+      else{
+        document.getElementById("ends").style.display="none";
+      }
+      
       if (hitTestSourceRequested === false) {
         session.requestReferenceSpace("viewer").then(function (referenceSpace) {
           session
@@ -281,14 +257,20 @@ export default function ImageDetec() {
               hitTestSource = source;
             });
         });
-
         session.addEventListener("end", function () {
           hitTestSourceRequested = false;
           hitTestSource = null;
         });
-
         hitTestSourceRequested = true;
       }
+      
+      const endar = () =>{
+        session.end();
+        renderer.xr.dispose = true;
+        navigate(-1);
+      };
+      const el = document.getElementById("ends");
+      el.addEventListener("click", endar);
 
       if (hitTestSource) {
         const hitTestResults = frame.getHitTestResults(hitTestSource);
@@ -308,18 +290,13 @@ export default function ImageDetec() {
 
     renderer.render(scene, camera);
   }
-  // function setStyle() {
-  //   if (hitTestSource) {
-  //     setBtplace({ display: "block" });
-  //   }
-  // }
 
   return (
     <div className="w-full flex-auto">
-      <div id="content" className="absolute">
+      <div id="content" className="w-full absolute">
         <div
           id="mySidenav"
-          className="h-full left-0 duration-500 bg-slate-300 w-24 hidden"
+          className="h-full ml-5 duration-500 bg-slate-300 w-24 hidden"
         >
           <a id="closebtn">&times;</a>
           {modelList.map((m, index) => (
@@ -334,20 +311,20 @@ export default function ImageDetec() {
             </a>
           ))}
         </div>
-        <span className="absolute text-xl cursor-pointer" id="open">
-          OPEN
-        </span>
+        <div className=" absolute w-full flex"> 
+          <div className=" text-xl cursor-pointer left-2 w-1/2" id="open">
+            <span className="absolute rounded-md bg-slate-100 p-1 left-4">OPEN</span>
+          </div>
+          <div className="text-center align-middle w-1/2 ">
+            <span className=" absolute rounded-md bg-slate-100 p-1 right-4 cursor-pointer" id="ends"> STOP AR </span>
+           
+          </div>
+       
+        </div>
+        
       </div>
 
       <div id="container" ref={ref} className="w-fit h-fit"></div>
-
-      <button
-        type="button"
-        id="place-button"
-        className="absolute w-24 h-6 bottom-2 z-1000 hidden"
-      >
-        PLACE
-      </button>
     </div>
   );
 }

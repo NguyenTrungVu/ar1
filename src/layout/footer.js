@@ -1,21 +1,22 @@
-import { Alert } from "react-bootstrap"
+import { Alert } from "react-bootstrap";
 
-
-const Footer = () =>{
-    return (
-        <Alert variant="success" className="inset-x-0 bottom-0">
-            <Alert.Heading>TuVuBus</Alert.Heading>
-            <p>
-                Aww yeah, you successfully read this important alert message. This example
-                text is going to run a bit longer so that you can see how spacing within an
-                alert works with this kind of content.
-            </p>
-            <hr />
-            <p className="mb-0">
-                Whenever you need to, be sure to use margin utilities to keep things nice
-                and tidy.
-            </p>
-            </Alert>
-    )
-}
-export default Footer
+const Footer = () => {
+  return (
+    <div className="absolute inset-x-0 bottom-0">
+      <Alert variant="success" className="">
+        <Alert.Heading>TuVuBus</Alert.Heading>
+        <p>
+          Aww yeah, you successfully read this important alert message. This
+          example text is going to run a bit longer so that you can see how
+          spacing within an alert works with this kind of content.
+        </p>
+        <hr />
+        <p className="mb-0">
+          Whenever you need to, be sure to use margin utilities to keep things
+          nice and tidy.
+        </p>
+      </Alert>
+    </div>
+  );
+};
+export default Footer;
