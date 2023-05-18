@@ -8,12 +8,28 @@ import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import hdrFilePath from "../textures/photo_studio_01_1k.hdr";
+import axios from "axios";
+
+
+const cloudinaryUrl =
+    "https://cors-anywhere.herokuapp.com/https://api.cloudinary.com/v1_1/dcrqeomcc/resources/raw/upload";
+  const options = {
+    headers: {
+      Authorization:
+        "Basic " + btoa("647449414761263:1J70qEJJTg45n0GfEoRpUNa7XIE"),
+    },
+    params: {
+      resource_type: "raw",
+      prefix: "3dmodel/",
+      format: "json",
+    },
+  };
 
 export default function ImageDetec() {
   var context = require.context("../3d", true, /\.(glb|gltf)$/); //get all 3d model
   var res = context.keys().map(context);
-  const [modelList, setModelList] = useState(res);
-  const [isAR, setIsAR]= useState(false);
+  const [modelList, setModelList] = useState([]);
+  const [isAR, setIsAR] = useState(false);
   var ref = useRef(null);
   var navigate = useNavigate();
   var container;
@@ -24,22 +40,23 @@ export default function ImageDetec() {
   var hitTestSource = null;
   var hitTestSourceRequested = false;
   var num;
+  
+  // get model from cloudinary.
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const results = await axios.get(cloudinaryUrl, options);
+        setModelList(results.data.resources);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    fetchFiles();
+  }, []);
 
   //change model on click
-  function handleClick(e) {
-    num = e.target.id;
-    let num1 = num;
-    console.log(num1);
-    if (current_object == null) {
-      loadModel(num);
-    } else {
-      scene.remove(current_object);
-      current_object = null;
-      loadModel(num);
-    }
-    e.preventDefault();
-  }
-
+ 
+  console.log(modelList[1]);
   //init scene, ar setup
   useEffect(() => {
     const elm = ref.current;
@@ -75,23 +92,23 @@ export default function ImageDetec() {
       controls.dampingFactor = 0.05;
 
       let overlayContent = document.getElementById("content");
-      
+
       elm.appendChild(
         ARButton.createButton(renderer, {
           requiredFeatures: ["hit-test"],
           optionalFeatures: ["dom-overlay"],
-          domOverlay: { root: overlayContent},
+          domOverlay: { root: overlayContent },
         })
       );
-        workingVec3 = new THREE.Vector3();
+      workingVec3 = new THREE.Vector3();
       function onSelect() {
         if (reticle.visible) {
-          if (current_object.visible){
-            workingVec3.setFromMatrixPosition(reticle.matrix );
-        }else{
-            current_object.position.setFromMatrixPosition(reticle.matrix );
+          if (current_object.visible) {
+            workingVec3.setFromMatrixPosition(reticle.matrix);
+          } else {
+            current_object.position.setFromMatrixPosition(reticle.matrix);
             current_object.visible = true;
-        }
+          }
           // current_object.visible = true;
           // current_object.position.setFromMatrixPosition(reticle.matrix);
           // current_object.newPath()
@@ -170,6 +187,20 @@ export default function ImageDetec() {
     };
     document.getElementById("closebtn").addEventListener("click", myClick);
   }, []);
+
+  function handleClick(e) {
+    num = e.target.id;
+    let num1 = num;
+    console.log(num1);
+    if (current_object == null) {
+      loadModel(num);
+    } else {
+      scene.remove(current_object);
+      current_object = null;
+      loadModel(num);
+    }
+    e.preventDefault();
+  }
   function arPlace() {
     if (reticle.visible) {
       current_object.position.setFromMatrixPosition(reticle.matrix);
@@ -187,12 +218,12 @@ export default function ImageDetec() {
     new RGBELoader()
       .setDataType(THREE.HalfFloatType)
       .load(hdrFilePath, function (texture) {
+        console.log(pmremGenerator);
         envmap = pmremGenerator.fromEquirectangular(texture).texture;
         scene.environment = envmap;
         texture.dispose();
         pmremGenerator.dispose();
         render();
-
 
         const loader = new GLTFLoader();
 
@@ -205,7 +236,7 @@ export default function ImageDetec() {
                 current_object = glb.scene;
                 // current_object.scale.set(.5,.5,.5);
                 console.log("i am here!!!!!");
-
+                console.log(current_object);
                 scene.add(current_object);
 
                 arPlace();
@@ -241,14 +272,13 @@ export default function ImageDetec() {
     if (frame) {
       const referenceSpace = renderer.xr.getReferenceSpace();
       const session = renderer.xr.getSession();
-      
-      if(session){
-        document.getElementById("ends").style.display="block";
+
+      if (session) {
+        document.getElementById("ends").style.display = "block";
+      } else {
+        document.getElementById("ends").style.display = "none";
       }
-      else{
-        document.getElementById("ends").style.display="none";
-      }
-      
+
       if (hitTestSourceRequested === false) {
         session.requestReferenceSpace("viewer").then(function (referenceSpace) {
           session
@@ -263,8 +293,8 @@ export default function ImageDetec() {
         });
         hitTestSourceRequested = true;
       }
-      
-      const endar = () =>{
+
+      const endar = () => {
         session.end();
         renderer.xr.dispose = true;
         navigate(-1);
@@ -311,17 +341,22 @@ export default function ImageDetec() {
             </a>
           ))}
         </div>
-        <div className=" absolute w-full flex"> 
+        <div className=" absolute w-full flex">
           <div className=" text-xl cursor-pointer left-2 w-1/2" id="open">
-            <span className="absolute rounded-md bg-slate-100 p-1 left-4">OPEN</span>
+            <span className="absolute rounded-md bg-slate-100 p-1 left-4">
+              OPEN
+            </span>
           </div>
           <div className="text-center align-middle w-1/2 ">
-            <span className=" absolute rounded-md bg-slate-100 p-1 right-4 cursor-pointer" id="ends"> STOP AR </span>
-           
+            <span
+              className=" absolute rounded-md bg-slate-100 p-1 right-4 cursor-pointer"
+              id="ends"
+            >
+              {" "}
+              STOP AR{" "}
+            </span>
           </div>
-       
         </div>
-        
       </div>
 
       <div id="container" ref={ref} className="w-fit h-fit"></div>

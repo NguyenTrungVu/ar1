@@ -3,7 +3,7 @@ import { Alert } from "react-bootstrap";
 const Footer = () => {
   return (
     <div className="absolute inset-x-0 bottom-0">
-      <Alert variant="success" className="">
+      <Alert variant="success" className="m-0">
         <Alert.Heading>TuVuBus</Alert.Heading>
         <p>
           Aww yeah, you successfully read this important alert message. This

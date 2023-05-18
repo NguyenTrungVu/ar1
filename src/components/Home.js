@@ -27,7 +27,7 @@ export default function Home(){
               </Link>
             </div>
             <div className="hover:bg-[#AEE2FF] shadow-lg shadow-gray-100 xs:shadow-xs md:shadow-gray-100 p-4 text-center rounded-md h-[70px] mb-[10px]">
-              Upload Models
+             <Link to="/upload">Upload Models</Link> 
             </div>
           </div>
         </div>

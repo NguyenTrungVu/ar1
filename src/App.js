@@ -7,6 +7,7 @@ import Header from './layout/Header';
 import Home from './components/Home';
 import ImageDetec from './components/ImageDetect ';
 import ImageDetecting from './components/ImageDetecting';
+import Upload from './components/Upload';
 function App() {
   return (
     <BrowserRouter>
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Home/>}/>
         <Route path="/imagedetection" element={<ImageDetecting/>}/>
         <Route path="/planedetection" element={<ImageDetec/>}/>
+        <Route path="/upload" element={<Upload/>}/>
       </Routes>
       <Footer/>
     </BrowserRouter>
