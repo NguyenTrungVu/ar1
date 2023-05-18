@@ -10,8 +10,24 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import hdrFilePath from "../textures/photo_studio_01_1k.hdr";
 import axios from "axios";
 
+export default function ImageDetec() {
+  var context = require.context("../3d", true, /\.(glb|gltf)$/); //get all 3d model
+  var res = context.keys().map(context);
+  const [modelList, setModelList] = useState(res);
+  const [isAR, setIsAR] = useState(false);
+  // const [pmremGenerator, setPMRemGenerator] = useState();
+  var ref = useRef(null);
+  var navigate = useNavigate();
+  var container;
+  var camera, scene, renderer, workingVec3;
+  var controller;
+  var reticle, pmremGenerator, current_object, controls, envmap;
+  var touchDown, touchX, touchY, deltaX, deltaY;
+  var hitTestSource = null;
+  var hitTestSourceRequested = false;
+  var num;
 
-const cloudinaryUrl =
+  const cloudinaryUrl =
     "https://cors-anywhere.herokuapp.com/https://api.cloudinary.com/v1_1/dcrqeomcc/resources/raw/upload";
   const options = {
     headers: {
@@ -24,35 +40,18 @@ const cloudinaryUrl =
       format: "json",
     },
   };
-
-export default function ImageDetec() {
-  var context = require.context("../3d", true, /\.(glb|gltf)$/); //get all 3d model
-  var res = context.keys().map(context);
-  const [modelList, setModelList] = useState([]);
-  const [isAR, setIsAR] = useState(false);
-  var ref = useRef(null);
-  var navigate = useNavigate();
-  var container;
-  var camera, scene, renderer, workingVec3;
-  var controller;
-  var reticle, pmremGenerator, current_object, controls, envmap;
-  var touchDown, touchX, touchY, deltaX, deltaY;
-  var hitTestSource = null;
-  var hitTestSourceRequested = false;
-  var num;
-  
   // get model from cloudinary.
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        const results = await axios.get(cloudinaryUrl, options);
-        setModelList(results.data.resources);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    fetchFiles();
-  }, []);
+  // useEffect(() => {
+  //   const fetchFiles = async () => {
+  //     try {
+  //       const results = await axios.get(cloudinaryUrl, options);
+  //       setModelList(results.data.resources);
+  //     } catch (err) {
+  //       console.log(err);
+  //     }
+  //   };
+  //   fetchFiles();
+  // }, []);
 
   //change model on click
  
@@ -82,7 +81,7 @@ export default function ImageDetec() {
 
       pmremGenerator = new THREE.PMREMGenerator(renderer);
       pmremGenerator.compileEquirectangularShader();
-
+        // setPMRemGenerator(pmr);
       controls = new OrbitControls(camera, renderer.domElement);
       controls.addEventListener("change", render);
       controls.minDistance = 2;
@@ -228,7 +227,7 @@ export default function ImageDetec() {
         const loader = new GLTFLoader();
 
         modelList.map((e, i) => {
-          
+
           if (i + 1 == model) {
             loader.load(
               e,
